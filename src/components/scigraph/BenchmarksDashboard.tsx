@@ -3,39 +3,81 @@
 import { motion } from "framer-motion";
 
 /**
- * Benchmark figures framed as reported in the SciGraph evaluation suite.
- * Path-to-Discovery highlights the user-specified comparison (12s vs 4.5h manual).
+ * Numbers and claims are taken from the cited papers (see `source` on each row).
+ * This UI does not claim the SciGraph demo reproduces those experiments—it only
+ * grounds the “model story” in published literature.
  */
 const BENCHMARKS = [
   {
-    label: "Path-to-Discovery",
-    scigraph: "12 s",
-    baseline: "4.5 h",
-    baselineLabel: "Manual keyword search",
+    label: "Multi-task scientific NLP (macro F₁, test)",
+    primary: "79.27",
+    primarySub: "SciBERT (finetuned)",
+    comparison: "76.01",
+    comparisonSub: "BERT-Base (finetuned)",
     detail:
-      "Median wall-clock to surface a validated cross-domain association chain across materials and pharmacology corpora.",
+      "Macro-averaged test F₁ across the task suite in Table 1 (NER, PICO, REL, CLS, etc.); ChemProt uses micro F₁ and DEP uses LAS/UAS as in the paper.",
+    source: {
+      cite: "Beltagy, Lo & Cohan — SciBERT",
+      url: "https://arxiv.org/abs/1903.10676",
+      ref: "arXiv:1903.10676 · Table 1 (summary row)",
+    },
     highlight: true,
   },
   {
-    label: "Triple F1 (extraction)",
-    scigraph: "0.84",
-    baseline: "0.71",
-    baselineLabel: "Baseline SciBERT IE",
-    detail: "Micro-averaged F1 on held-out scientific abstracts.",
+    label: "ChemProt relation classification (micro F₁)",
+    primary: "83.64",
+    primarySub: "SciBERT (finetuned)",
+    comparison: "75.03",
+    comparisonSub: "BERT-Base (finetuned)",
+    detail:
+      "Binary/typed relation prediction on chemical–protein interactions; reported as micro F₁ in SciBERT Table 1.",
+    source: {
+      cite: "Beltagy, Lo & Cohan — SciBERT",
+      url: "https://arxiv.org/abs/1903.10676",
+      ref: "arXiv:1903.10676 · Table 1 (ChemProt)",
+    },
   },
   {
-    label: "Graph recall@10 (multi-hop)",
-    scigraph: "0.79",
-    baseline: "0.52",
-    baselineLabel: "BM25 + flat RAG",
-    detail: "Retrieval of gold intermediate entities within three hops.",
+    label: "Global sensemaking answers (LLM-as-judge)",
+    primary: "Higher",
+    primarySub: "GraphRAG (graph index + community summaries)",
+    comparison: "Lower",
+    comparisonSub: "Conventional vector RAG baseline",
+    detail:
+      "On global questions over ~1M-token private corpora, the authors report substantially better comprehensiveness and diversity of generated answers versus a conventional RAG baseline (same class of LLM).",
+    source: {
+      cite: "Edge et al. — From Local to Global (GraphRAG)",
+      url: "https://arxiv.org/abs/2404.16130",
+      ref: "arXiv:2404.16130 · Abstract & evaluation section",
+    },
   },
   {
-    label: "End-to-end latency (p95)",
-    scigraph: "1.8 s",
-    baseline: "6.4 s",
-    baselineLabel: "Dense vector-only RAG",
-    detail: "Query to ranked evidence bundle on a 2.3M-triple subgraph.",
+    label: "SciBERT pretraining corpus (scale)",
+    primary: "3.17B",
+    primarySub: "tokens (Semantic Scholar sample)",
+    comparison: "1.14M",
+    comparisonSub: "full-text papers in pretraining mix",
+    detail:
+      "Corpus statistics from the SciBERT paper (82% biomedical / 18% CS by paper count); vocabulary overlap with original BERT WordPiece is ~42%.",
+    source: {
+      cite: "Beltagy, Lo & Cohan — SciBERT",
+      url: "https://arxiv.org/abs/1903.10676",
+      ref: "arXiv:1903.10676 · §2 Methods",
+    },
+  },
+  {
+    label: "KG-based literature exploration (system goal)",
+    primary: "KG + subgraph UI",
+    primarySub: "DiscoverPath (biomedical)",
+    comparison: "Keyword-only",
+    comparisonSub: "Typical search (limitations discussed)",
+    detail:
+      "DiscoverPath builds a knowledge graph from abstract NER/POS relations and presents focused subgraphs plus query recommendations for interdisciplinary retrieval; the paper motivates limitations of terminology mismatch in keyword search.",
+    source: {
+      cite: "Chuang et al. — DiscoverPath",
+      url: "https://arxiv.org/abs/2309.01808",
+      ref: "arXiv:2309.01808",
+    },
   },
 ];
 
@@ -50,12 +92,12 @@ export function BenchmarksDashboard() {
           className="mb-10"
         >
           <h2 className="font-serif text-2xl font-semibold text-slate-50 sm:text-3xl">
-            Benchmarks dashboard
+            Literature-grounded benchmarks
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Key metrics from the SciGraph paper-style evaluation. The Path-to-Discovery
-            row emphasizes orders-of-magnitude gains versus exhaustive manual
-            keyword exploration.
+            Quantitative and qualitative results reported in the cited research—not
+            measurements produced by this course demo. Use the links to verify
+            tables and experimental settings in the original papers.
           </p>
         </motion.div>
 
@@ -82,7 +124,7 @@ export function BenchmarksDashboard() {
               <div className="mt-4 flex flex-wrap items-end gap-6">
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-300/80">
-                    SciGraph
+                    {b.primarySub}
                   </p>
                   <p
                     className={
@@ -91,21 +133,31 @@ export function BenchmarksDashboard() {
                         : "font-mono text-2xl font-semibold text-slate-100"
                     }
                   >
-                    {b.scigraph}
+                    {b.primary}
                   </p>
                 </div>
                 <div className="h-8 w-px bg-white/10" aria-hidden />
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                    {b.baselineLabel}
+                    {b.comparisonSub}
                   </p>
-                  <p className="font-mono text-xl text-slate-500 line-through decoration-slate-600">
-                    {b.baseline}
-                  </p>
+                  <p className="font-mono text-xl text-slate-400">{b.comparison}</p>
                 </div>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-slate-500">
                 {b.detail}
+              </p>
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-600">
+                <span className="text-slate-500">Source: </span>
+                <a
+                  href={b.source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-400/90 underline decoration-cyan-500/40 underline-offset-2 hover:text-cyan-300"
+                >
+                  {b.source.cite}
+                </a>
+                <span className="text-slate-600"> · {b.source.ref}</span>
               </p>
             </motion.article>
           ))}
