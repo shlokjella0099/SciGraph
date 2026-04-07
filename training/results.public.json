@@ -1,0 +1,16 @@
+{
+  "model_name": "allenai/scibert_scivocab_uncased",
+  "dataset": "hrithikpiyush/scierc",
+  "test_metrics": {
+    "eval_loss": 0.8357345461845398,
+    "eval_micro_f1": 0.7618069815195072,
+    "eval_macro_f1": 0.5099333477276499,
+    "eval_runtime": 3.528,
+    "eval_samples_per_second": 276.074,
+    "eval_steps_per_second": 8.787,
+    "epoch": 1.0
+  },
+  "num_train_examples": 3219,
+  "num_validation_examples": 455,
+  "num_test_examples": 974
+}
