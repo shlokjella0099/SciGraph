@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 /**
@@ -81,7 +82,51 @@ const BENCHMARKS = [
   },
 ];
 
+type ModelResultsResponse = {
+  available: boolean;
+  modelName: string;
+  dataset: string;
+  microF1: number | null;
+  macroF1: number | null;
+  baseline: {
+    bertBaseMicroF1: number;
+    scibertPaperMicroF1: number;
+  };
+};
+
 export function BenchmarksDashboard() {
+  const [modelResults, setModelResults] = useState<ModelResultsResponse | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/model-results")
+      .then((r) => r.json())
+      .then((d: ModelResultsResponse) => {
+        if (active) setModelResults(d);
+      })
+      .catch(() => {
+        if (active) setModelResults(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const deltaVsBertBase =
+    modelResults?.microF1 !== null && modelResults
+      ? modelResults.microF1 - modelResults.baseline.bertBaseMicroF1
+      : null;
+  const deltaVsScibertPaper =
+    modelResults?.microF1 !== null && modelResults
+      ? modelResults.microF1 - modelResults.baseline.scibertPaperMicroF1
+      : null;
+
+  const formatDelta = (v: number | null) => {
+    if (v === null) return "N/A";
+    const sign = v >= 0 ? "+" : "";
+    return `${sign}${v.toFixed(4)}`;
+  };
+
   return (
     <section className="relative px-6 py-20 sm:px-10 lg:px-16">
       <div className="mx-auto max-w-5xl">
@@ -100,6 +145,79 @@ export function BenchmarksDashboard() {
             tables and experimental settings in the original papers.
           </p>
         </motion.div>
+
+        {modelResults && (
+          <motion.article
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="glass-panel mb-6 rounded-2xl border-emerald-500/30 p-6 ring-1 ring-emerald-400/20"
+          >
+            <h3 className="font-serif text-xl font-semibold text-slate-100">
+              Your model vs baselines
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">
+              Dataset: {modelResults.dataset} · Live from{" "}
+              <span className="font-mono">training/results.json</span>
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
+                <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">
+                  Your trained model
+                </p>
+                <p className="mt-1 font-mono text-2xl text-emerald-300">
+                  {modelResults.microF1 !== null
+                    ? modelResults.microF1.toFixed(4)
+                    : "N/A"}
+                </p>
+                <p className="text-[11px] text-slate-500">Micro-F1</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
+                <p className="text-[10px] uppercase tracking-wider text-cyan-300/80">
+                  BERT-Base baseline
+                </p>
+                <p className="mt-1 font-mono text-2xl text-cyan-300">
+                  {modelResults.baseline.bertBaseMicroF1.toFixed(4)}
+                </p>
+                <p className="text-[11px] text-slate-500">Micro-F1</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
+                <p className="text-[10px] uppercase tracking-wider text-violet-300/80">
+                  SciBERT (paper)
+                </p>
+                <p className="mt-1 font-mono text-2xl text-violet-300">
+                  {modelResults.baseline.scibertPaperMicroF1.toFixed(4)}
+                </p>
+                <p className="text-[11px] text-slate-500">Micro-F1</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span
+                className={
+                  deltaVsBertBase !== null && deltaVsBertBase >= 0
+                    ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono text-emerald-300"
+                    : "rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-[11px] font-mono text-rose-300"
+                }
+              >
+                Δ vs BERT-Base: {formatDelta(deltaVsBertBase)}
+              </span>
+              <span
+                className={
+                  deltaVsScibertPaper !== null && deltaVsScibertPaper >= 0
+                    ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono text-emerald-300"
+                    : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-[11px] font-mono text-amber-300"
+                }
+              >
+                Δ vs SciBERT paper: {formatDelta(deltaVsScibertPaper)}
+              </span>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              {modelResults.available
+                ? `Loaded model: ${modelResults.modelName}`
+                : "No local training results detected yet. Run the training notebook to populate this panel."}
+            </p>
+          </motion.article>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-2">
           {BENCHMARKS.map((b, i) => (

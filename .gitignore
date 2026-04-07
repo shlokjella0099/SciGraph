@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# training artifacts
+/training/artifacts/
+/training/checkpoints/
+/training/results.json
+/training/*.zip

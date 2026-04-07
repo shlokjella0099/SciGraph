@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SciGraph
 
-## Getting Started
+SciGraph is a Next.js + MongoDB research demo for scientific knowledge graph discovery:
+- dark academic UI with GraphRAG-style 3-hop traversal
+- confidence ranking with `Cs = (M_conf × S_cred) / D_age`
+- real model training workflow for relation extraction using SciBERT on SciERC
 
-First, run the development server:
+## 1) Run the web app
 
 ```bash
+cd ~/scigraph2
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 2) Configure MongoDB
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env` from `.env.example`:
 
-## Learn More
+```bash
+MONGODB_URI=mongodb://127.0.0.1:27017/scigraph
+```
 
-To learn more about Next.js, take a look at the following resources:
+Optional bootstrap with curated sample triples:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run seed
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 3) Train the real extractor model (Google Colab GPU)
 
-## Deploy on Vercel
+Use notebook:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `training/colab_scierc_relation_extraction.ipynb`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Dataset:
+
+- SciERC (`allenai/scierc`)
+
+Base model:
+
+- `allenai/scibert_scivocab_uncased`
+
+Notebook outputs:
+
+- `training/artifacts/scibert-scierc-relation/`
+- `training/results.json` (includes micro/macro F1)
+
+Detailed training notes:
+
+- `training/README.md`
+
+## 4) Generate triples with the trained model
+
+After downloading model artifacts into `training/artifacts/scibert-scierc-relation/`, run:
+
+```bash
+python3 scripts/extract-triples.py \
+  --model-dir training/artifacts/scibert-scierc-relation \
+  --input-file data/abstracts.txt \
+  --output-file data/extracted_triples.jsonl \
+  --source-quality 12.0 \
+  --min-confidence 0.45
+```
+
+Input formats accepted by `extract-triples.py`:
+- plain text lines (heuristic entity pairs)
+- TSV lines: `subject<TAB>object<TAB>context`
+
+## 5) Seed MongoDB with extracted triples
+
+```bash
+npm run seed:extractions -- --file data/extracted_triples.jsonl --replace
+```
+
+Flags:
+- `--file` JSONL emitted by extractor
+- `--replace` optionally clears existing collection before insert
+
+## 6) Verify end-to-end pipeline
+
+1. Start app: `npm run dev`
+2. Query the discovery UI with entities present in your extracted triples
+3. Confirm APIs:
+   - `GET /api/triples`
+   - `POST /api/discover`
+
+## Project structure (model pipeline)
+
+- Training notebook: `training/colab_scierc_relation_extraction.ipynb`
+- Inference CLI: `scripts/extract-triples.py`
+- Mongo seeding from extracted triples: `scripts/seed-from-extractions.ts`
+- Triple schema: `src/models/KnowledgeTriple.ts`

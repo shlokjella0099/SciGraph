@@ -31,11 +31,11 @@ type DiscoverResponse = {
 };
 
 const SUGGESTIONS = [
-  "Metformin",
-  "Graphene",
-  "Adrenaline",
-  "Type 2 Diabetes",
-  "Superconductivity",
+  "Fever",
+  "Paracetamol",
+  "Ibuprofen",
+  "Amoxicillin",
+  "Cough",
 ];
 
 export function GraphRagSearch() {
@@ -99,7 +99,7 @@ export function GraphRagSearch() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && run()}
-              placeholder="Try Metformin, Graphene, Adrenaline…"
+              placeholder="Try Fever, Paracetamol, Cough…"
               className="flex-1 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 outline-none ring-cyan-500/40 placeholder:text-slate-600 focus:ring-2"
             />
             <motion.button
